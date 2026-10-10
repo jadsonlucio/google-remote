@@ -32,6 +32,7 @@ class RemoteApp(rumps.App):
         self.runner = Runner()
         self.client: TvClient | None = None
         self._pairing = False
+        self._open_when_ready = False
         self.tv: Tv | None = load_tv(self.dir)
         self.window = RemoteWindow(self.on_key, self.on_text)
         self.status_item = rumps.MenuItem("No TV selected")
@@ -70,6 +71,9 @@ class RemoteApp(rumps.App):
         self.window.set_status(text)
         if status is Status.NEEDS_PAIRING:
             self.pair()
+        elif status is Status.READY and self._open_when_ready:
+            self._open_when_ready = False
+            self.window.show()
 
     # -- connection ------------------------------------------------------
     def connect(self, tv: Tv) -> None:
@@ -145,6 +149,8 @@ class RemoteApp(rumps.App):
 
         def finished(_result, error) -> None:
             self._pairing = False
+            if error is None:
+                self._open_when_ready = True
             if isinstance(error, InvalidAuth):
                 AppHelper.callAfter(rumps.alert, "TV Remote", "Wrong code. Choose Re-pair to try again.")
             elif isinstance(error, ConnectionClosed):
