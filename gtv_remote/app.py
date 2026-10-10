@@ -31,6 +31,7 @@ class RemoteApp(rumps.App):
         self.dir = config_dir()
         self.runner = Runner()
         self.client: TvClient | None = None
+        self._pairing = False
         self.tv: Tv | None = load_tv(self.dir)
         self.window = RemoteWindow(self.on_key, self.on_text)
         self.status_item = rumps.MenuItem("No TV selected")
@@ -76,6 +77,8 @@ class RemoteApp(rumps.App):
         save_tv(self.dir, tv)
         old = self.client
 
+        self._pairing = False
+
         def start() -> None:
             if old:
                 old.stop()
@@ -120,9 +123,13 @@ class RemoteApp(rumps.App):
         client = self.client
         if client is None:
             return self.find_tv()
+        if self._pairing:  # a second start would make the TV drop the code it is showing
+            return
+        self._pairing = True
 
         def started(_result, error) -> None:
             if error is not None:
+                self._pairing = False
                 msg = "Couldn't reach the TV to pair." if isinstance(error, CannotConnect) else f"Pairing failed: {error}"
                 return AppHelper.callAfter(rumps.alert, "TV Remote", msg)
             AppHelper.callAfter(self._ask_code, client)
@@ -132,10 +139,12 @@ class RemoteApp(rumps.App):
     def _ask_code(self, client: TvClient) -> None:
         reply = rumps.Window("Enter the 6-character code shown on the TV:", "Pair with TV", ok="Pair", cancel="Cancel").run()
         if not reply.clicked:
+            self._pairing = False
             return
         code = reply.text
 
         def finished(_result, error) -> None:
+            self._pairing = False
             if isinstance(error, InvalidAuth):
                 AppHelper.callAfter(rumps.alert, "TV Remote", "Wrong code. Choose Re-pair to try again.")
             elif isinstance(error, ConnectionClosed):

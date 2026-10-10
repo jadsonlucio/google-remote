@@ -49,11 +49,14 @@ class TvClient:
             self.status = status
             self._on_status(status)
 
-    async def start(self) -> None:
+    async def ensure_cert(self) -> None:
         await self._remote.async_generate_cert_if_missing()
         for f in (self._certfile, self._keyfile):
             if f.exists():
                 f.chmod(0o600)
+
+    async def start(self) -> None:
+        await self.ensure_cert()
         self._remote.add_is_available_updated_callback(self._on_available)
         self._task = asyncio.create_task(self._connect())
 
