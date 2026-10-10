@@ -1,0 +1,19 @@
+[project]
+name = "gtv-remote"
+version = "0.1.0"
+description = "Menu-bar virtual remote for Google TV (Android TV Remote protocol v2)"
+requires-python = ">=3.10"
+dependencies = ["androidtvremote2>=0.3", "zeroconf", "rumps"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
+
+[project.scripts]
+gtv-remote = "gtv_remote.app:main"
+
+[tool.setuptools]
+packages = ["gtv_remote"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
